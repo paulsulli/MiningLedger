@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <!--[if IE]>
+    <meta http-equiv="X-UA-Compatible" content="IE=10">
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="G. (Kyria) Bisch">
+
+    <title>Mining Ledger</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+{% if not current_user.is_authenticated %}
+<a href="{{ url_for('login') }}">
+    <img src="https://images.contentful.com/idjq7aai9ylm/18BxKSXCymyqY4QKo8KwKe/c2bdded6118472dd587c8107f24104d7/EVE_SSO_Login_Buttons_Small_White.png?w=195&amp;h=30" alt="Log in with eveonline.com" />
+</a>
+
+{% else %}
+Hello <strong>{{ current_user.character_name }}</strong><br>
+Your wallet is currently full of <strong>{{ wallet }}</strong> ISK
+<br>
+<br>
+
+<strong>Your ESI Information:</strong>
+<table border="1">
+    <tr><td>Character ID:</td><td>{{ current_user.character_id }}</td></tr>
+    <tr><td>Character Owner Hash:</td><td>{{ current_user.character_owner_hash }}</td></tr>
+    <tr><td>Access Token:</td><td>{{ current_user.access_token }}</td></tr>
+    <tr><td>Access Token valid until:</td><td>{{ current_user.access_token_expires }}</td></tr>
+    <tr><td>Refresh Token:</td><td>{{ current_user.refresh_token }}</td></tr>
+</table>
+<br>
+
+<table border="1">
+    <tr>
+        <th>Date</th>
+        <th>System</th>
+        <th>Ore Type</th>
+        <th>Amount</th>
+    </tr>
+    {% for item in data %}
+    <tr>
+        <th>{{ item.date }}</th>
+        <th>{{ item.solar_system_id }}</th>
+        <th>{{ item.type_id }}</th>
+        <th>{{ item.quantity }}</th>
+    <tr>
+    {% endfor %}
+</table>
+<br>
+<br>
+<a class="button" href="{{ url_for('logout') }}">Logout</a>
+<a class="button" href="">Add Character</a>
+<a class="button" href="{{ url_for('logout') }}">Update Data</a>
+{% endif %}
