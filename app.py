@@ -23,6 +23,7 @@ from flask_login import logout_user
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.schema import PrimaryKeyConstraint
 
 import config
 import hashlib
@@ -72,6 +73,7 @@ class User(db.Model, UserMixin):
     access_token = db.Column(db.String(100))
     access_token_expires = db.Column(db.DateTime())
     refresh_token = db.Column(db.String(100))
+    latest_seen = db.Column(db.DateTime())
 
     def get_id(self):
         """ Required for flask-login """
@@ -97,18 +99,12 @@ class User(db.Model, UserMixin):
         if 'refresh_token' in token_response:
             self.refresh_token = token_response['refresh_token']
 
-'''
 class MiningData(db.Model):
-    data_id = db.Column(
-        db.BigInteger,
-        primary_key=True,
-        autoincrement=True)
-    character_id = db.Column(db.BigInteger, db.ForeignKey(User.character_id))
-    date = db.Column(db.DateTime())
-    system_id = db.Column(db.BigInteger)
-    item_id = db.Column(db.BigInteger)
+    character_id = db.Column(db.BigInteger, db.ForeignKey(User.character_id), primary_key=True)
+    date = db.Column(db.Date(), primary_key=True)
+    solar_system_id = db.Column(db.BigInteger, primary_key=True)
+    type_id = db.Column(db.BigInteger, primary_key=True)
     quantity = db.Column(db.BigInteger)
-'''
 
 # -----------------------------------------------------------------------
 # Flask Login requirements
@@ -230,20 +226,15 @@ def callback():
 
     return redirect(url_for("index"))
 
-def _get_character_data(character_id=0):
+def _get_character_data(user):
     # For a given character, crawl all the history of the api.
     wallet = None
     data = []
     # if the user is authed, get the wallet content !
-    if current_user.is_authenticated:
+    if user.is_authenticated:
         # give the token data to esisecurity, it will check alone
         # if the access token need some update
-        esisecurity.update_token(current_user.get_sso_data())
-
-        op = esiapp.op['get_characters_character_id_wallet'](
-            character_id=current_user.character_id
-        )
-        wallet = esiclient.request(op)
+        esisecurity.update_token(user.get_sso_data())
 
         # Get all the pages
         try:
@@ -251,7 +242,7 @@ def _get_character_data(character_id=0):
             while True:
                 print page_num
                 op = esiapp.op['get_characters_character_id_mining'](
-                    character_id=current_user.character_id,
+                    character_id=user.character_id,
                     page=page_num
                 )
                 mining = esiclient.request(op)
@@ -264,10 +255,21 @@ def _get_character_data(character_id=0):
 
     from operator import itemgetter
     data = sorted(data, key=itemgetter('date'), reverse=True)
-    print data
-    # Save to db.  Add latest to characte so you know how far back to go when recrawling
 
-    # character,
+    for row in data:
+        obj = MiningData()
+        obj.character_id = user.character_id
+        obj.date = datetime.strptime(str(row.get('date')), '%Y-%m-%d')
+        obj.solar_system_id = row.get('solar_system_id')
+        obj.type_id = row.get('type_id')
+        obj.quantity = row.get('quantity')
+        db.session.add(obj)
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        print("Duplicate entry")
+        db.session.rollback()
 
 
 # -----------------------------------------------------------------------
@@ -286,31 +288,16 @@ def index():
         op = esiapp.op['get_characters_character_id_wallet'](
             character_id=current_user.character_id
         )
-        wallet = esiclient.request(op)
+        wallet = "{:,}".format(esiclient.request(op).data)
 
-        # Get all the pages
-        try:
-            page_num = 1
-            while True:
-                print page_num
-                op = esiapp.op['get_characters_character_id_mining'](
-                    character_id=current_user.character_id,
-                    page=page_num
-                )
-                mining = esiclient.request(op)
-                data += mining.data
-                page_num += 1
-                if len(mining.data) == 0:
-                    break
-        except Exception as e:
-            print e
+        _get_character_data(current_user)
 
-    from operator import itemgetter
-    data = sorted(data, key=itemgetter('date'), reverse=True)
+    stuff = MiningData.query.all()
+    print stuff
 
     return render_template('base.html', **{
-        'wallet': "{:,}".format(wallet.data),
-        'data': data
+        'wallet': wallet,
+        'data': stuff
     })
 
 
