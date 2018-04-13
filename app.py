@@ -12,6 +12,7 @@ from flask import render_template
 from flask import request
 from flask import session
 from flask import url_for
+from flask import jsonify
 
 from flask_login import LoginManager
 from flask_login import UserMixin
@@ -226,23 +227,25 @@ def callback():
 
     return redirect(url_for("index"))
 
-def _get_character_data(user):
+
+# -----------------------------------------------------------------------
+# Character Data Routes
+# ----------------------------------------------------------------------
+def _get_character_data(character):
     # For a given character, crawl all the history of the api.
     wallet = None
     data = []
-    # if the user is authed, get the wallet content !
-    if user.is_authenticated:
+    if character.is_authenticated:
         # give the token data to esisecurity, it will check alone
         # if the access token need some update
-        esisecurity.update_token(user.get_sso_data())
-
+        esisecurity.update_token(character.get_sso_data())
         # Get all the pages
         try:
             page_num = 1
             while True:
                 print page_num
                 op = esiapp.op['get_characters_character_id_mining'](
-                    character_id=user.character_id,
+                    character_id=character.character_id,
                     page=page_num
                 )
                 mining = esiclient.request(op)
@@ -253,51 +256,46 @@ def _get_character_data(user):
         except Exception as e:
             print e
 
-    from operator import itemgetter
-    data = sorted(data, key=itemgetter('date'), reverse=True)
+    print character.character_name
 
     for row in data:
         obj = MiningData()
-        obj.character_id = user.character_id
+        obj.character_id = character.character_id
         obj.date = datetime.strptime(str(row.get('date')), '%Y-%m-%d')
         obj.solar_system_id = row.get('solar_system_id')
         obj.type_id = row.get('type_id')
         obj.quantity = row.get('quantity')
         db.session.add(obj)
 
-    try:
-        db.session.commit()
-    except Exception as e:
-        print("Duplicate entry")
-        db.session.rollback()
+        try:
+            db.session.commit()
+        except Exception as e:
+            print("Duplicate entry")
+            print obj
+            db.session.rollback()
 
+@app.route('/update')
+def update():
+    # Pull new data for character.
+    character_id = request.args.get('character_id', 0, type=int)
+    print character_id
+    character = User.query.filter_by(character_id=character_id).all()[0]
+    _get_character_data(character)
+    return jsonify(result={})
 
 # -----------------------------------------------------------------------
 # Index Routes
 # -----------------------------------------------------------------------
 @app.route('/')
 def index():
-    wallet = None
-    data = []
-    # if the user is authed, get the wallet content !
-    if current_user.is_authenticated:
-        # give the token data to esisecurity, it will check alone
-        # if the access token need some update
-        esisecurity.update_token(current_user.get_sso_data())
+    # Simply display page with data.
 
-        op = esiapp.op['get_characters_character_id_wallet'](
-            character_id=current_user.character_id
-        )
-        wallet = "{:,}".format(esiclient.request(op).data)
-
-        _get_character_data(current_user)
-
-    stuff = MiningData.query.all()
-    print stuff
+    characters = User.query.all()
+    data = MiningData.query.order_by(MiningData.date.desc())
 
     return render_template('base.html', **{
-        'wallet': wallet,
-        'data': stuff
+        'characters': characters,
+        'data': data
     })
 
 

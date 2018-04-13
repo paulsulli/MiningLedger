@@ -10,6 +10,11 @@
 
     <title>Mining Ledger</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+
+    <script type=text/javascript src="{{ url_for('static', filename='js/jquery-3.3.1.min.js') }}"></script>
+    <script type=text/javascript src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>$SCRIPT_ROOT = {{ request.script_root|tojson|safe }};</script>
 </head>
 
 <body>
@@ -20,24 +25,40 @@
 </a>
 
 {% else %}
+<!--
 Hello <strong>{{ current_user.character_name }}</strong><br>
 Your wallet is currently full of <strong>{{ wallet }}</strong> ISK
 <br>
 <br>
-
-<strong>Your ESI Information:</strong>
+{% for character in characters %}
 <table border="1">
-    <tr><td>Character ID:</td><td>{{ current_user.character_id }}</td></tr>
-    <tr><td>Character Owner Hash:</td><td>{{ current_user.character_owner_hash }}</td></tr>
-    <tr><td>Access Token:</td><td>{{ current_user.access_token }}</td></tr>
-    <tr><td>Access Token valid until:</td><td>{{ current_user.access_token_expires }}</td></tr>
-    <tr><td>Refresh Token:</td><td>{{ current_user.refresh_token }}</td></tr>
+    <tr><td>Character Name:</td><td>{{ character.character_name }}</td></tr>
+    <tr><td>Character ID:</td><td>{{ character.character_id }}</td></tr>
+    <tr><td>Character Owner Hash:</td><td>{{ character.character_owner_hash }}</td></tr>
+    <tr><td>Access Token:</td><td>{{ character.access_token }}</td></tr>
+    <tr><td>Access Token valid until:</td><td>{{ character.access_token_expires }}</td></tr>
+    <tr><td>Refresh Token:</td><td>{{ character.refresh_token }}</td></tr>
 </table>
+<br>
+{% endfor %}
+-->
+<strong>Characters:</strong>
+<table border="1">
+{% for character in characters %}
+    <tr>
+        <td>{{ character.character_name }}</td>
+        <td><a class="button" href="{{ url_for('logout') }}?character_id={{ character.character_id }}">Logout</a></td>
+        <td><a class="button update" href=# id={{ character.character_id }}>Update Data</a></td>
+    </tr>
+{% endfor %}
+</table>
+<a class="button" href="{{ url_for('login') }}">Add Character</a>
 <br>
 
 <table border="1">
     <tr>
         <th>Date</th>
+        <th>Character</th>
         <th>System</th>
         <th>Ore Type</th>
         <th>Amount</th>
@@ -45,6 +66,7 @@ Your wallet is currently full of <strong>{{ wallet }}</strong> ISK
     {% for item in data %}
     <tr>
         <th>{{ item.date }}</th>
+        <th>{{ item.character_id}}</th>
         <th>{{ item.solar_system_id }}</th>
         <th>{{ item.type_id }}</th>
         <th>{{ item.quantity }}</th>
@@ -53,7 +75,6 @@ Your wallet is currently full of <strong>{{ wallet }}</strong> ISK
 </table>
 <br>
 <br>
-<a class="button" href="{{ url_for('logout') }}">Logout</a>
-<a class="button" href="">Add Character</a>
-<a class="button" href="{{ url_for('logout') }}">Update Data</a>
+
 {% endif %}
+
