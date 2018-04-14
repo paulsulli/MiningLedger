@@ -106,6 +106,8 @@ class MiningData(db.Model):
     solar_system_id = db.Column(db.BigInteger, primary_key=True)
     type_id = db.Column(db.BigInteger, primary_key=True)
     quantity = db.Column(db.BigInteger)
+    ore_name = db.Column(db.String(100))
+    volume = db.Column(db.Float)
 
 # -----------------------------------------------------------------------
 # Flask Login requirements
@@ -159,7 +161,7 @@ def login():
     token = generate_token()
     session['token'] = token
     return redirect(esisecurity.get_auth_uri(
-        scopes=['esi-wallet.read_character_wallet.v1', 'esi-industry.read_character_mining.v1'],
+        scopes=['esi-industry.read_character_mining.v1'],
         state=token,
     ))
 
@@ -265,6 +267,12 @@ def _get_character_data(character):
         obj.solar_system_id = row.get('solar_system_id')
         obj.type_id = row.get('type_id')
         obj.quantity = row.get('quantity')
+
+        op = esiapp.op['get_universe_types_type_id'](type_id=row.get('type_id') )
+        ore = esiclient.request(op).data
+        obj.ore_name = ore.get("name")
+        obj.volume = ore.get("volume")
+
         db.session.add(obj)
 
         try:

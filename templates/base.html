@@ -59,17 +59,19 @@ Your wallet is currently full of <strong>{{ wallet }}</strong> ISK
     <tr>
         <th>Date</th>
         <th>Character</th>
-        <th>System</th>
         <th>Ore Type</th>
         <th>Amount</th>
+        <th>Volume</th>
+        <th>Total Vol</th>
     </tr>
     {% for item in data %}
     <tr>
         <th>{{ item.date }}</th>
         <th>{{ item.character_id}}</th>
-        <th>{{ item.solar_system_id }}</th>
-        <th>{{ item.type_id }}</th>
+        <th>{{ item.ore_name }}</th>
         <th>{{ item.quantity }}</th>
+        <th>{{ item.volume }}</th>
+        <th>{{ item.volume * item.quantity }}</th>
     <tr>
     {% endfor %}
 </table>
