@@ -25,6 +25,7 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import PrimaryKeyConstraint
+from sqlalchemy import func
 
 import config
 import hashlib
@@ -273,6 +274,8 @@ def _get_character_data(character):
         obj.ore_name = ore.get("name")
         obj.volume = ore.get("volume")
 
+        #op = esiapp.op['get_universe_systems_system_id'](system_id=data[0].solar_system_id )
+        #obj.system_name = esiclient.request(op).data.get("name")
         db.session.add(obj)
 
         try:
@@ -299,11 +302,32 @@ def index():
     # Simply display page with data.
 
     characters = User.query.all()
-    data = MiningData.query.order_by(MiningData.date.desc())
+    result = MiningData.query.order_by(MiningData.date.desc())
+
+    data = []
+    for row in result:
+        ret = {'date': row.date,
+               'character_name':  User.query.filter_by(character_id=row.character_id).all()[0].character_name,
+               'ore_name': row.ore_name,
+               'quantity': row.quantity,
+               'volume': row.volume}
+        data.append(ret)
+
+    result = MiningData.query.with_entities(MiningData.date, MiningData.ore_name, func.sum(MiningData.quantity * MiningData.volume)).group_by(MiningData.date, MiningData.ore_name).order_by(MiningData.date).all()
+    chart_data = []
+    ore_split = {}
+    for row in result:
+        if ore_split.get(row[1]):
+            lst = ore_split[row[1]]
+            lst.append([row[0].strftime("%Y %m %d"),  row[2]])
+            ore_split[row[1]] = lst
+        else:
+            ore_split[row[1]] = [[row[0].strftime("%Y %m %d"),  row[2]]]
 
     return render_template('base.html', **{
         'characters': characters,
-        'data': data
+        'data': data,
+        'chart_data': ore_split
     })
 
 
