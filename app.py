@@ -289,7 +289,6 @@ def _get_character_data(character):
 def update():
     # Pull new data for character.
     character_id = request.args.get('character_id', 0, type=int)
-    print character_id
     character = User.query.filter_by(character_id=character_id).all()[0]
     _get_character_data(character)
     return jsonify(result={})
@@ -297,10 +296,45 @@ def update():
 # -----------------------------------------------------------------------
 # Index Routes
 # -----------------------------------------------------------------------
+def _getCharacterChartData():
+    # Really ugly way of transforming DB data to something highcharts likes.
+    characters = User.query.all()
+    result = MiningData.query.order_by(MiningData.date.desc())
+
+    data = []
+    charNames = []
+    for character in characters:
+        mined = MiningData.query.with_entities(MiningData.ore_name, func.sum(MiningData.quantity * MiningData.volume)).filter_by(character_id=character.character_id).group_by(MiningData.ore_name).all()
+        charData = []
+        for item in mined:
+            charData.append(item)
+        charNames.append(character.character_name)
+        data.append(charData)
+
+    ores = ['Gleaming Spodumain', 'Obsidian Ochre', 'Crystalline Crokite', 'Prismatic Gneiss', 'Prime Arkonor', 'Monoclinic Bistot',  'Vitreous Mercoxit']
+    colors = ['#b3b3b3', '#1a1a1a', '#eeee33', '#33ff33', '#ff3333', '#33ffff', '#ff9933']
+    oreData = []
+    i = 0
+    for ore in ores:
+        seriesData = []
+        for charData in data:
+            found = False
+            for element in charData:
+                if element[0] == ore:
+                    found = True
+                    break
+            if found is True:
+                seriesData.append(element[1])
+            else:
+                seriesData.append(0)
+        oreSeries = {'name': ore, 'data': seriesData, 'color': colors[i]}
+        oreData.append(oreSeries)
+        i += 1
+    return charNames, oreData
+
 @app.route('/')
 def index():
     # Simply display page with data.
-
     characters = User.query.all()
     result = MiningData.query.order_by(MiningData.date.desc())
 
@@ -313,8 +347,10 @@ def index():
                'volume': row.volume}
         data.append(ret)
 
+    char_chart_names, char_chart_data = _getCharacterChartData()
+
+    # Data for combined chart
     result = MiningData.query.with_entities(MiningData.date, MiningData.ore_name, func.sum(MiningData.quantity * MiningData.volume)).group_by(MiningData.date, MiningData.ore_name).order_by(MiningData.date).all()
-    chart_data = []
     ore_split = {}
     for row in result:
         if ore_split.get(row[1]):
@@ -323,11 +359,14 @@ def index():
             ore_split[row[1]] = lst
         else:
             ore_split[row[1]] = [[row[0].strftime("%Y %m %d"),  row[2]]]
+    ore_split = ore_split['Prismatic Gneiss']
 
     return render_template('base.html', **{
         'characters': characters,
         'data': data,
-        'chart_data': ore_split
+        'chart_data': ore_split,
+        'char_chart_names': char_chart_names,
+        'char_chart_data': char_chart_data
     })
 
 

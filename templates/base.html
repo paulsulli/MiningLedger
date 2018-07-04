@@ -22,6 +22,9 @@
     <script>
     $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
     var chart_data = {{ chart_data|tojson }};
+
+    var char_chart_names = {{char_chart_names|tojson}}
+    var char_chart_data = {{char_chart_data|tojson}}
     </script>
 </head>
 
@@ -34,10 +37,6 @@
 
 {% else %}
 <!--
-Hello <strong>{{ current_user.character_name }}</strong><br>
-Your wallet is currently full of <strong>{{ wallet }}</strong> ISK
-<br>
-<br>
 {% for character in characters %}
 <table border="1">
     <tr><td>Character Name:</td><td>{{ character.character_name }}</td></tr>
@@ -50,21 +49,28 @@ Your wallet is currently full of <strong>{{ wallet }}</strong> ISK
 <br>
 {% endfor %}
 -->
-<strong>Characters:</strong>
-<table border="1">
-{% for character in characters %}
-    <tr>
-        <td>{{ character.character_name }}</td>
-        <td><a class="button" href="{{ url_for('logout') }}?character_id={{ character.character_id }}">Logout</a></td>
-        <td><a class="button update" href=# id={{ character.character_id }}>Update Data</a></td>
-    </tr>
-{% endfor %}
-</table>
-<a class="button" href="{{ url_for('login') }}">Add Character</a>
-<br>
-
+<div>
+    <div style="float: left">
+        <strong>Characters:</strong>
+        <table border="1">
+        {% for character in characters %}
+            <tr>
+                <td>{{ character.character_name }}</td>
+                <td><a class="button" href="{{ url_for('logout') }}?character_id={{ character.character_id }}">Logout</a></td>
+                <td><a class="button update" href=# id={{ character.character_id }}>Update Data</a></td>
+            </tr>
+        {% endfor %}
+        </table>
+        <a class="button" href="{{ url_for('login') }}">Add Character</a>
+        <br>
+    </div>
+</div>
 <div id="container" style="width:100%; height:400px;"></div>
+<br>
+<div id="container2" style="min-width: 310px; max-width: 800px; height: 1000px; margin: 0 auto"></div>
 
+<!--
+Full list of database entries:
 <table border="1">
     <tr>
         <th>Date</th>
@@ -87,6 +93,7 @@ Your wallet is currently full of <strong>{{ wallet }}</strong> ISK
 </table>
 <br>
 <br>
+-->
 
 {% endif %}
 
