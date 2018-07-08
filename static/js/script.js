@@ -1,5 +1,3 @@
-console.log('ayy');
-
 $(function() {
     $('a.update').bind('click', function() {
         var id = this.id
@@ -20,10 +18,8 @@ $(function() {
                 text: 'Data'
             },
             type: 'bar',
-            /*
             labels: {
                 formatter: function () {
-                    console.log(this)
                     return Highcharts.dateFormat('%Y %b %d', this.value);
                 },
             },
@@ -36,32 +32,15 @@ $(function() {
                 month: '%b \'%y',
                 year: '%Y'
             }
-            */
+
         },
         yAxis: {
             title: {
                 text: 'Quantity mined'
             }
         },
-        series: [chart_data],
+        series: chart_data,
     });
-
-    /*
-    $.each(chart_data, function(k, v) {
-        var items = []
-        $.each(v, function(k2, v2) {
-            var parts = v2[0].split(' ');
-            var bla = [new Date(parseInt(parts[0], 10), parseInt(parts[1], 10), parseInt(parts[2], 10)).getTime(), v2[1] ];
-            items.push(bla);
-        });
-        console.log(items)
-        timeChart.addSeries({name: k, data: v}, false);
-    });
-
-    console.log(chart_data)
-    */
-    // what if the actual series axises are not being set to datetime?
-    timeChart.redraw();
 
     characterChart = Highcharts.chart('container2', {
         chart: {

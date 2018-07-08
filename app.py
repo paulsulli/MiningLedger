@@ -296,6 +296,36 @@ def update():
 # -----------------------------------------------------------------------
 # Index Routes
 # -----------------------------------------------------------------------
+
+ORES = ['Gleaming Spodumain', 'Obsidian Ochre', 'Crystalline Crokite', 'Prismatic Gneiss', 'Prime Arkonor', 'Monoclinic Bistot',  'Vitreous Mercoxit']
+COLORS = ['#b3b3b3', '#1a1a1a', '#eeee33', '#33ff33', '#ff3333', '#33ffff', '#ff9933']
+
+COLOR_MAP = {'Gleaming Spodumain': '#b3b3b3',
+             'Obsidian Ochre': '#1a1a1a',
+             'Crystalline Crokite': '#eeee33',
+             'Prismatic Gneiss': '#33ff33',
+             'Prime Arkonor': '#ff3333',
+             'Monoclinic Bistot': '#33ffff',
+             'Vitreous Mercoxit': '#ff9933'
+}
+
+def _getTimeChartData():
+    # Data for combined chart
+    result = MiningData.query.with_entities(MiningData.date, MiningData.ore_name, func.sum(MiningData.quantity * MiningData.volume)).group_by(MiningData.date, MiningData.ore_name).order_by(MiningData.date).all()
+    ore_split = {}
+    for row in result:
+        if ore_split.get(row[1]):
+            lst = ore_split[row[1]]
+            lst.append([row[0],  row[2]])
+            ore_split[row[1]] = lst
+        else:
+            ore_split[row[1]] = [[row[0],  row[2]]]
+    ret = []
+    for k, v in ore_split.iteritems():
+        rework = {'name': k, 'data': v, 'color': COLOR_MAP[k]}
+        ret.append(rework)
+    return ret
+
 def _getCharacterChartData():
     # Really ugly way of transforming DB data to something highcharts likes.
     characters = User.query.all()
@@ -311,11 +341,9 @@ def _getCharacterChartData():
         charNames.append(character.character_name)
         data.append(charData)
 
-    ores = ['Gleaming Spodumain', 'Obsidian Ochre', 'Crystalline Crokite', 'Prismatic Gneiss', 'Prime Arkonor', 'Monoclinic Bistot',  'Vitreous Mercoxit']
-    colors = ['#b3b3b3', '#1a1a1a', '#eeee33', '#33ff33', '#ff3333', '#33ffff', '#ff9933']
     oreData = []
     i = 0
-    for ore in ores:
+    for ore in ORES:
         seriesData = []
         for charData in data:
             found = False
@@ -327,7 +355,7 @@ def _getCharacterChartData():
                 seriesData.append(element[1])
             else:
                 seriesData.append(0)
-        oreSeries = {'name': ore, 'data': seriesData, 'color': colors[i]}
+        oreSeries = {'name': ore, 'data': seriesData, 'color': COLORS[i]}
         oreData.append(oreSeries)
         i += 1
     return charNames, oreData
@@ -348,23 +376,12 @@ def index():
         data.append(ret)
 
     char_chart_names, char_chart_data = _getCharacterChartData()
-
-    # Data for combined chart
-    result = MiningData.query.with_entities(MiningData.date, MiningData.ore_name, func.sum(MiningData.quantity * MiningData.volume)).group_by(MiningData.date, MiningData.ore_name).order_by(MiningData.date).all()
-    ore_split = {}
-    for row in result:
-        if ore_split.get(row[1]):
-            lst = ore_split[row[1]]
-            lst.append([row[0].strftime("%Y %m %d"),  row[2]])
-            ore_split[row[1]] = lst
-        else:
-            ore_split[row[1]] = [[row[0].strftime("%Y %m %d"),  row[2]]]
-    ore_split = ore_split['Prismatic Gneiss']
+    chart_data = _getTimeChartData()
 
     return render_template('base.html', **{
         'characters': characters,
         'data': data,
-        'chart_data': ore_split,
+        'chart_data': chart_data,
         'char_chart_names': char_chart_names,
         'char_chart_data': char_chart_data
     })
