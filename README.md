@@ -12,3 +12,4 @@ Follow the Flask + EsiPy [instructions](https://github.com/Kyria/flask-esipy-exa
 
 ## OTHER NOTES:
 This runs a local server so all your data stays on your machine.  I only tested it with Cygwin on Windows but it's python so in theory it works on everything.
+Read the accompanying blog post [here](https://paulsulli.com/eve-online-an-adventure-with-the-api/).
